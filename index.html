@@ -299,8 +299,8 @@
 </head>
 <body>
 
-    <button class="theme-toggle" id="themeBtn">
-        <i class="fa-solid fa-sun" id="themeIcon"></i> <span id="themeText">Light Mode</span>
+    <button class="theme-toggle" id="themeBtn" aria-label="Toggle theme">
+        <i class="fa-solid fa-sun" id="themeIcon" aria-hidden="true"></i> <span id="themeText">Light Mode</span>
     </button>
 
     <header>
@@ -310,28 +310,28 @@
         
         <div class="social-links">
             <a href="https://linkedin.com/in/sgr-m" target="_blank" class="social-btn linkedin">
-                <i class="fa-brands fa-linkedin"></i> LinkedIn
+                <i class="fa-brands fa-linkedin" aria-hidden="true"></i> LinkedIn
             </a>
             <a href="https://github.com/sgr-m" target="_blank" class="social-btn github">
-                <i class="fa-brands fa-github"></i> GitHub
+                <i class="fa-brands fa-github" aria-hidden="true"></i> GitHub
             </a>
             <a href="https://hackerrank.com/profile/sagarmaindola" target="_blank" class="social-btn hackerrank">
-                <i class="fa-brands fa-hackerrank"></i> HackerRank
+                <i class="fa-brands fa-hackerrank" aria-hidden="true"></i> HackerRank
             </a>
             <a href="https://www.youtube.com/@cse_class" target="_blank" class="social-btn youtube">
-                <i class="fa-brands fa-youtube"></i> YouTube
+                <i class="fa-brands fa-youtube" aria-hidden="true"></i> YouTube
             </a>
         </div>
 
         <div class="location">
-            <i class="fa-solid fa-location-dot"></i> Uttarakhand, India
+            <i class="fa-solid fa-location-dot" aria-hidden="true"></i> Uttarakhand, India
         </div>
     </header>
 
     <main>
         <h2 class="section-title">Research & Projects</h2>
         <div class="grid" id="repos-grid">
-            <div class="loader"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading projects from GitHub...</div>
+            <div class="loader"><i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> Loading projects from GitHub...</div>
         </div>
     </main>
 
@@ -343,7 +343,9 @@
 
         // Check local storage or system preference
         const savedTheme = localStorage.getItem('portfolio-theme');
-        if (savedTheme === 'light') {
+        const systemPrefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+        
+        if (savedTheme === 'light' || (!savedTheme && systemPrefersLight)) {
             document.body.classList.add('light-theme');
             updateThemeUI(true);
         }
@@ -370,10 +372,25 @@
 
         async function fetchRepos() {
             try {
-                const response = await fetch(`https://api.github.com/users/${GITHUB_USERNAME}/repos?sort=updated&per_page=100`);
-                if (!response.ok) throw new Error('Failed to fetch repositories');
-                
-                let repos = await response.json();
+                const cacheKey = 'github-repos-cache';
+                const cacheTimeKey = 'github-repos-cache-time';
+                const cacheTime = sessionStorage.getItem(cacheTimeKey);
+                let repos = null;
+
+                // Use cache if it's less than 1 hour old (3600000 ms)
+                if (cacheTime && (Date.now() - parseInt(cacheTime)) < 3600000) {
+                    const cachedData = sessionStorage.getItem(cacheKey);
+                    if (cachedData) repos = JSON.parse(cachedData);
+                }
+
+                if (!repos) {
+                    const response = await fetch(`https://api.github.com/users/${GITHUB_USERNAME}/repos?sort=updated&per_page=100`);
+                    if (!response.ok) throw new Error('Failed to fetch repositories');
+                    repos = await response.json();
+                    sessionStorage.setItem(cacheKey, JSON.stringify(repos));
+                    sessionStorage.setItem(cacheTimeKey, Date.now().toString());
+                }
+
                 repos = repos.filter(repo => repo.name !== `${GITHUB_USERNAME}.github.io`);
 
                 grid.innerHTML = ''; 
@@ -383,6 +400,20 @@
                     return;
                 }
 
+                // Helper to prevent XSS
+                const escapeHTML = (str) => {
+                    if (!str) return '';
+                    return str.replace(/[&<>'"]/g, 
+                        tag => ({
+                            '&': '&amp;',
+                            '<': '&lt;',
+                            '>': '&gt;',
+                            "'": '&#39;',
+                            '"': '&quot;'
+                        }[tag])
+                    );
+                };
+
                 repos.forEach((repo, index) => {
                     const card = document.createElement('div');
                     card.className = 'card';
@@ -391,26 +422,39 @@
                     let liveLink = '';
                     let targetUrl = repo.html_url;
 
-                    if (repo.has_pages || repo.name.includes("DATA-ANALYTICS") || repo.name.includes("DASHBOARD")) {
-                        targetUrl = `https://${GITHUB_USERNAME}.github.io/${repo.name}/dashboard/`;
-                        liveLink = `<a href="${targetUrl}" target="_blank" class="primary-btn"><i class="fa-solid fa-chart-line"></i> View Dashboard</a>`;
+                    if (repo.has_pages) {
+                        if (repo.name.includes("DATA-ANALYTICS") || repo.name.includes("DASHBOARD")) {
+                            targetUrl = `https://${GITHUB_USERNAME}.github.io/${repo.name}/dashboard/`;
+                        } else {
+                            targetUrl = `https://${GITHUB_USERNAME}.github.io/${repo.name}/`;
+                        }
+                        liveLink = `<a href="${targetUrl}" target="_blank" class="primary-btn"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> View Site</a>`;
                     } else {
-                        liveLink = `<a href="${targetUrl}" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 500;"><i class="fa-solid fa-code"></i> View Code &rarr;</a>`;
+                        liveLink = `<a href="${targetUrl}" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 500;"><i class="fa-solid fa-code" aria-hidden="true"></i> View Code &rarr;</a>`;
                     }
 
                     const updatedDate = new Date(repo.updated_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
+                    const safeName = escapeHTML(repo.name.replace(/-/g, ' '));
+                    const safeDesc = escapeHTML(repo.description) || 'No description provided.';
+                    const safeLang = escapeHTML(repo.language);
+                    
+                    let topicsHtml = '';
+                    if (repo.topics) {
+                        topicsHtml = repo.topics.map(t => `<span class="tag">${escapeHTML(t)}</span>`).join('');
+                    }
+
                     card.innerHTML = `
-                        <h3 class="repo-name">${repo.name.replace(/-/g, ' ')}</h3>
-                        <p class="repo-desc">${repo.description || 'No description provided.'}</p>
+                        <h3 class="repo-name">${safeName}</h3>
+                        <p class="repo-desc">${safeDesc}</p>
                         
                         <div class="tags">
-                            ${repo.language ? `<span class="tag"><i class="fa-solid fa-circle" style="font-size:8px; margin-right:4px;"></i>${repo.language}</span>` : ''}
-                            ${repo.topics ? repo.topics.map(t => `<span class="tag">${t}</span>`).join('') : ''}
+                            ${safeLang ? `<span class="tag"><i class="fa-solid fa-circle" style="font-size:8px; margin-right:4px;" aria-hidden="true"></i>${safeLang}</span>` : ''}
+                            ${topicsHtml}
                         </div>
 
                         <div class="card-footer">
-                            <span><i class="fa-regular fa-clock"></i> Updated: ${updatedDate}</span>
+                            <span><i class="fa-regular fa-clock" aria-hidden="true"></i> Updated: ${updatedDate}</span>
                             ${liveLink}
                         </div>
                     `;
@@ -418,7 +462,7 @@
                     // Clickable card
                     card.style.cursor = 'pointer';
                     card.addEventListener('click', (e) => {
-                        if(e.target.tagName !== 'A' && e.target.tagName !== 'I') {
+                        if(!e.target.closest('a')) {
                             window.open(targetUrl, '_blank');
                         }
                     });
@@ -428,7 +472,7 @@
 
             } catch (error) {
                 console.error(error);
-                grid.innerHTML = '<div class="loader" style="color: #ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> Failed to load projects.</div>';
+                grid.innerHTML = '<div class="loader" style="color: #ef4444;"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Failed to load projects.</div>';
             }
         }
 

@@ -60,28 +60,42 @@
 
         /* Theme Toggle Button */
         .theme-toggle {
-            position: absolute;
+            position: fixed;
             top: 20px;
             right: 20px;
+            z-index: 1000;
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             color: var(--text-primary);
-            padding: 10px 16px;
-            border-radius: 20px;
+            padding: 10px 18px;
+            border-radius: 24px;
             cursor: pointer;
             font-family: 'Inter', sans-serif;
             font-weight: 500;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            transition: transform 0.2s, box-shadow 0.2s;
-            display: flex;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease;
+            display: inline-flex;
             align-items: center;
             gap: 8px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .theme-toggle * {
+            pointer-events: none;
         }
 
         .theme-toggle:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+        }
+
+        .theme-toggle:active {
+            transform: scale(0.96);
         }
 
         header {
@@ -90,6 +104,7 @@
             max-width: 900px;
             margin: 0 auto;
             position: relative;
+            z-index: 1;
         }
 
         .avatar {
@@ -386,22 +401,70 @@
             padding-top: 16px;
             font-size: 0.9rem;
             color: var(--text-secondary);
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .card-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: rgba(148, 163, 184, 0.12);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .icon-btn:hover {
+            background: var(--accent);
+            color: #fff;
+            transform: translateY(-2px);
+            border-color: var(--accent);
+        }
+
+        .secondary-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s ease;
+        }
+
+        .secondary-link:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
         }
 
         .primary-btn {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
             background: var(--accent);
             color: #fff;
             padding: 8px 16px;
             border-radius: 8px;
             text-decoration: none;
             font-weight: 500;
-            transition: background 0.2s ease;
+            font-size: 0.88rem;
+            transition: background 0.2s ease, transform 0.2s ease;
             border: none;
         }
 
         .primary-btn:hover {
             background: var(--accent-hover);
+            transform: translateY(-1px);
         }
 
         .loader {
@@ -424,10 +487,52 @@
 
         /* Responsive Media Queries */
         @media (max-width: 768px) {
-            header { padding: 60px 15px 30px; }
+            header { padding: 50px 16px 24px; }
+            main { padding: 30px 16px 60px; }
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
+            .card {
+                padding: 22px;
+            }
             .social-links { gap: 10px; }
-            .social-btn { padding: 8px 16px; font-size: 0.9rem; }
+            .social-btn { padding: 8px 14px; font-size: 0.88rem; }
             .footer-content { justify-content: center; text-align: center; }
+        }
+
+        @media (max-width: 520px) {
+            .theme-toggle {
+                top: 14px;
+                right: 14px;
+                width: 42px;
+                height: 42px;
+                padding: 0;
+                border-radius: 50%;
+                justify-content: center;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+            }
+            .theme-toggle #themeText {
+                display: none;
+            }
+            .theme-toggle i {
+                font-size: 1.15rem;
+                margin: 0;
+            }
+            h1 {
+                font-size: 2.2rem;
+            }
+            .bio {
+                font-size: 1rem;
+                line-height: 1.5;
+            }
+            .social-links {
+                gap: 8px;
+            }
+            .social-btn {
+                padding: 7px 12px;
+                font-size: 0.85rem;
+            }
         }
     </style>
 </head>
@@ -498,162 +603,339 @@
     </footer>
 
     <script>
-        // --- Theme Toggle Logic ---
+        // --- DOM Elements ---
         const themeBtn = document.getElementById('themeBtn');
         const themeIcon = document.getElementById('themeIcon');
         const themeText = document.getElementById('themeText');
-
-        // Check local storage or system preference
-        const savedTheme = localStorage.getItem('portfolio-theme');
-        const systemPrefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-        
-        if (savedTheme === 'light' || (!savedTheme && systemPrefersLight)) {
-            document.body.classList.add('light-theme');
-            updateThemeUI(true);
-        }
-
-        themeBtn.addEventListener('click', () => {
-            const isLight = document.body.classList.toggle('light-theme');
-            localStorage.setItem('portfolio-theme', isLight ? 'light' : 'dark');
-            updateThemeUI(isLight);
-        });
-
         const visitorBadge = document.getElementById('visitorBadge');
-        if (visitorBadge) {
-            visitorBadge.onerror = function() {
-                this.onerror = null;
-                this.src = 'https://badges.pufler.dev/visits/sgr-m/sgr-m.github.io?style=flat&color=3b82f6&label=Visitors&labelColor=1e293b';
-            };
-        }
-
         const currentYearEl = document.getElementById('currentYear');
+        const grid = document.getElementById('repos-grid');
+
+        // Set current year
         if (currentYearEl) {
             currentYearEl.textContent = new Date().getFullYear();
         }
 
+        // Visitor badge error fallback
+        if (visitorBadge) {
+            visitorBadge.onerror = function() {
+                if (this.src && this.src.indexOf('badges.pufler.dev') === -1) {
+                    this.src = 'https://badges.pufler.dev/visits/sgr-m/sgr-m.github.io?style=flat&color=3b82f6&label=Visitors&labelColor=1e293b';
+                } else {
+                    this.style.display = 'none';
+                }
+            };
+        }
+
+        // --- Safe Storage Helpers ---
+        function safeGetStorage(key) {
+            try {
+                return localStorage.getItem(key);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function safeSetStorage(key, value) {
+            try {
+                localStorage.setItem(key, value);
+            } catch (e) {
+                // Ignore storage errors in restricted private browsing
+            }
+        }
+
+        // --- Theme Toggle Logic ---
         function updateThemeUI(isLight) {
+            if (!themeIcon || !themeText) return;
             if (isLight) {
                 themeIcon.className = 'fa-solid fa-moon';
                 themeText.textContent = 'Dark Mode';
-                if (visitorBadge) {
+                if (visitorBadge && visitorBadge.style.display !== 'none') {
                     visitorBadge.src = 'https://visitor-badge.laobi.icu/badge?page_id=sgr-m.github.io&left_color=%23475569&right_color=%232563eb&left_text=Visitors';
                 }
             } else {
                 themeIcon.className = 'fa-solid fa-sun';
                 themeText.textContent = 'Light Mode';
-                if (visitorBadge) {
+                if (visitorBadge && visitorBadge.style.display !== 'none') {
                     visitorBadge.src = 'https://visitor-badge.laobi.icu/badge?page_id=sgr-m.github.io&left_color=%231e293b&right_color=%233b82f6&left_text=Visitors';
                 }
             }
         }
 
-        // --- GitHub API Fetching ---
+        // Check local storage or system preference
+        const savedTheme = safeGetStorage('portfolio-theme');
+        const systemPrefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+        const initialLight = savedTheme === 'light' || (!savedTheme && systemPrefersLight);
+
+        if (initialLight) {
+            document.body.classList.add('light-theme');
+            updateThemeUI(true);
+        } else {
+            updateThemeUI(false);
+        }
+
+        if (themeBtn) {
+            themeBtn.addEventListener('click', () => {
+                const isLight = document.body.classList.toggle('light-theme');
+                safeSetStorage('portfolio-theme', isLight ? 'light' : 'dark');
+                updateThemeUI(isLight);
+            });
+        }
+
+        // --- Repositories Data & Rendering ---
         const GITHUB_USERNAME = 'sgr-m';
-        const grid = document.getElementById('repos-grid');
 
-        async function fetchRepos() {
-            try {
-                const cacheKey = 'github-repos-cache';
-                const cacheTimeKey = 'github-repos-cache-time';
-                const cacheTime = sessionStorage.getItem(cacheTimeKey);
-                let repos = null;
+        // Curated repository data for instant, reliable loading even when offline or GitHub API rate-limited
+        const STATIC_REPOS = [
+            {
+                name: "SmartNoteAI",
+                description: "High-performance open-source interactive digital whiteboard & STEM teaching software for Windows 10 and 11.",
+                html_url: "https://github.com/sgr-m/SmartNoteAI",
+                language: "TypeScript",
+                updated_at: "2026-10-27T12:29:19Z",
+                has_pages: true,
+                topics: []
+            },
+            {
+                name: "Indian-Elections-Analysis-1947-2025",
+                description: "Data-driven analysis of party fragmentation, electoral volatility, and coalition networks in Indian parliamentary elections (1951–2024).",
+                html_url: "https://github.com/sgr-m/Indian-Elections-Analysis-1947-2025",
+                language: "Jupyter Notebook",
+                updated_at: "2026-10-04T11:50:36Z",
+                has_pages: true,
+                topics: []
+            },
+            {
+                name: "CRIME-IN-INDIA-2001-2025-COMPLETE-DATA-ANALYTICS",
+                description: "Source code and analytical workflow for the research paper \"CRIME IN INDIA: TEMPORAL TRENDS, SPATIAL PATTERNS, AND INSTITUTIONAL CONTEXT (2001–2025)\". Includes data preprocessing, exploratory analysis, spatial visualization, and statistical modeling using Python and Power BI.",
+                html_url: "https://github.com/sgr-m/CRIME-IN-INDIA-2001-2025-COMPLETE-DATA-ANALYTICS",
+                language: "Jupyter Notebook",
+                updated_at: "2026-09-19T02:59:23Z",
+                has_pages: true,
+                topics: []
+            },
+            {
+                name: "Digital-Logic-Design-for-CSE",
+                description: "Comprehensive Digital Electronics notes and lecture PDFs for Computer Science and Engineering (CSE). Covers number systems, logic gates, Boolean algebra, combinational and sequential circuits, multiplexers, decoders, and more.",
+                html_url: "https://github.com/sgr-m/Digital-Logic-Design-for-CSE",
+                language: "Digital Electronics",
+                updated_at: "2026-07-13T11:18:23Z",
+                has_pages: false,
+                topics: ["boolean-algebra", "combinational-circuits", "computer-engineering", "cse", "digital-electronics", "lecture-notes", "logic-gates", "sequential-circuits"]
+            },
+            {
+                name: "Programming-in-C-for-GATE",
+                description: "This repository contains detailed lecture notes, source codes, and video lecture links for learning C programming — suitable for undergraduate students, GATE, and UGC NET (Computer Science) aspirants.",
+                html_url: "https://github.com/sgr-m/Programming-in-C-for-GATE",
+                language: "C",
+                updated_at: "2025-12-28T07:19:30Z",
+                has_pages: false,
+                topics: ["c", "c-programming", "computer-science", "cse", "data-structures-c", "exam-prep", "gate-cs"]
+            },
+            {
+                name: "Expense-Tracker-Using-Python-and-MySQL",
+                description: "A Python CLI application to track personal expenses, manage categories, set budgets, and generate detailed reports. Easy-to-use command-line interface for efficient expense management.",
+                html_url: "https://github.com/sgr-m/Expense-Tracker-Using-Python-and-MySQL",
+                language: "Python",
+                updated_at: "2025-10-26T15:33:30Z",
+                has_pages: false,
+                topics: []
+            },
+            {
+                name: "GlobalSuperstore-Data-Analytics",
+                description: "This is proper analytics of Global Superstore dataset.",
+                html_url: "https://github.com/sgr-m/GlobalSuperstore-Data-Analytics",
+                language: "Jupyter Notebook",
+                updated_at: "2025-10-26T13:57:33Z",
+                has_pages: false,
+                topics: ["python3"]
+            },
+            {
+                name: "home-automation-system-using-ESP8266-microprocessor",
+                description: "IoT based Home Automation System (Wireless Switch Controlling system) using ESP8266 (NodeMCU) Microcontroller",
+                html_url: "https://github.com/sgr-m/home-automation-system-using-ESP8266-microprocessor",
+                language: "C++",
+                updated_at: "2025-10-26T13:47:46Z",
+                has_pages: false,
+                topics: []
+            },
+            {
+                name: "Student-Report-Card-System",
+                description: "A Python-based system to manage student report cards, including marks entry, grade calculation, and performance analysis.",
+                html_url: "https://github.com/sgr-m/Student-Report-Card-System",
+                language: "Python",
+                updated_at: "2025-10-26T13:41:56Z",
+                has_pages: false,
+                topics: []
+            },
+            {
+                name: "stock-management-system-using-python-sql",
+                description: "STOCK MANAGEMENT SYSTEM USING PYTHON 3 AND SQL",
+                html_url: "https://github.com/sgr-m/stock-management-system-using-python-sql",
+                language: "Python",
+                updated_at: "2025-10-26T12:57:41Z",
+                has_pages: false,
+                topics: []
+            },
+            {
+                name: "Quiz-Generator-using-python-and-sql",
+                description: "Quiz Generator using MySQL and Python 3.12",
+                html_url: "https://github.com/sgr-m/Quiz-Generator-using-python-and-sql",
+                language: "Python",
+                updated_at: "2024-06-21T09:33:46Z",
+                has_pages: false,
+                topics: []
+            }
+        ];
 
-                // Use cache if it's less than 1 hour old (3600000 ms)
-                if (cacheTime && (Date.now() - parseInt(cacheTime)) < 3600000) {
-                    const cachedData = sessionStorage.getItem(cacheKey);
-                    if (cachedData) repos = JSON.parse(cachedData);
-                }
+        // Helper to prevent XSS
+        const escapeHTML = (str) => {
+            if (!str) return '';
+            return String(str).replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        };
 
-                if (!repos) {
-                    const response = await fetch(`https://api.github.com/users/${GITHUB_USERNAME}/repos?sort=updated&per_page=100`);
-                    if (!response.ok) throw new Error('Failed to fetch repositories');
-                    repos = await response.json();
-                    sessionStorage.setItem(cacheKey, JSON.stringify(repos));
-                    sessionStorage.setItem(cacheTimeKey, Date.now().toString());
-                }
+        function renderRepos(repos) {
+            if (!grid) return;
+            if (!Array.isArray(repos) || repos.length === 0) {
+                grid.innerHTML = '<div class="loader">No projects found.</div>';
+                return;
+            }
 
-                repos = repos.filter(repo => repo.name !== `${GITHUB_USERNAME}.github.io`);
+            grid.innerHTML = ''; 
 
-                grid.innerHTML = ''; 
+            repos.forEach((repo, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.animationDelay = `${Math.min(index * 0.08, 0.8)}s`;
 
-                if(repos.length === 0) {
-                    grid.innerHTML = '<div class="loader">No projects found.</div>';
-                    return;
-                }
+                let liveLink = '';
+                let targetUrl = repo.html_url;
 
-                // Helper to prevent XSS
-                const escapeHTML = (str) => {
-                    if (!str) return '';
-                    return str.replace(/[&<>'"]/g, 
-                        tag => ({
-                            '&': '&amp;',
-                            '<': '&lt;',
-                            '>': '&gt;',
-                            "'": '&#39;',
-                            '"': '&quot;'
-                        }[tag])
-                    );
-                };
-
-                repos.forEach((repo, index) => {
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    card.style.animationDelay = `${index * 0.1}s`;
-
-                    let liveLink = '';
-                    let targetUrl = repo.html_url;
-
-                    if (repo.has_pages) {
-                        if (repo.name.includes("DATA-ANALYTICS") || repo.name.includes("DASHBOARD")) {
-                            targetUrl = `https://${GITHUB_USERNAME}.github.io/${repo.name}/dashboard/`;
-                        } else {
-                            targetUrl = `https://${GITHUB_USERNAME}.github.io/${repo.name}/`;
-                        }
-                        liveLink = `<a href="${targetUrl}" target="_blank" class="primary-btn"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> View Site</a>`;
+                if (repo.has_pages) {
+                    if (repo.name.includes("DATA-ANALYTICS") || repo.name.includes("DASHBOARD")) {
+                        targetUrl = `https://${GITHUB_USERNAME}.github.io/${repo.name}/dashboard/`;
                     } else {
-                        liveLink = `<a href="${targetUrl}" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 500;"><i class="fa-solid fa-code" aria-hidden="true"></i> View Code &rarr;</a>`;
+                        targetUrl = `https://${GITHUB_USERNAME}.github.io/${repo.name}/`;
                     }
+                }
 
-                    const updatedDate = new Date(repo.updated_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                const updatedDate = repo.updated_at
+                    ? new Date(repo.updated_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                    : '';
 
-                    const safeName = escapeHTML(repo.name.replace(/-/g, ' '));
-                    const safeDesc = escapeHTML(repo.description) || 'No description provided.';
-                    const safeLang = escapeHTML(repo.language);
+                const safeName = escapeHTML(repo.name.replace(/-/g, ' '));
+                const safeDesc = escapeHTML(repo.description) || 'No description provided.';
+                const safeLang = escapeHTML(repo.language);
+                
+                let topicsHtml = '';
+                if (Array.isArray(repo.topics)) {
+                    topicsHtml = repo.topics.map(t => `<span class="tag">${escapeHTML(t)}</span>`).join('');
+                }
+
+                card.innerHTML = `
+                    <h3 class="repo-name">${safeName}</h3>
+                    <p class="repo-desc">${safeDesc}</p>
                     
-                    let topicsHtml = '';
-                    if (repo.topics) {
-                        topicsHtml = repo.topics.map(t => `<span class="tag">${escapeHTML(t)}</span>`).join('');
+                    <div class="tags">
+                        ${safeLang ? `<span class="tag"><i class="fa-solid fa-circle" style="font-size:8px; margin-right:4px;" aria-hidden="true"></i>${safeLang}</span>` : ''}
+                        ${topicsHtml}
+                    </div>
+
+                    <div class="card-footer">
+                        <span><i class="fa-regular fa-clock" aria-hidden="true"></i> Updated: ${updatedDate}</span>
+                        <div class="card-actions">
+                            ${repo.has_pages ? `<a href="${targetUrl}" target="_blank" rel="noopener noreferrer" class="primary-btn"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> View Site</a>` : ''}
+                            <a href="${repo.html_url}" target="_blank" rel="noopener noreferrer" class="${repo.has_pages ? 'icon-btn' : 'secondary-link'}" title="View GitHub Repository" aria-label="View code on GitHub">
+                                <i class="fa-brands fa-github" aria-hidden="true"></i> ${repo.has_pages ? '' : 'View Code &rarr;'}
+                            </a>
+                        </div>
+                    </div>
+                `;
+
+                // Interactive card click handler (safe from mobile pop-up blockers)
+                card.style.cursor = 'pointer';
+                card.addEventListener('click', (e) => {
+                    if (!e.target.closest('a') && !e.target.closest('button')) {
+                        const destination = repo.has_pages ? targetUrl : repo.html_url;
+                        window.open(destination, '_blank', 'noopener,noreferrer');
                     }
-
-                    card.innerHTML = `
-                        <h3 class="repo-name">${safeName}</h3>
-                        <p class="repo-desc">${safeDesc}</p>
-                        
-                        <div class="tags">
-                            ${safeLang ? `<span class="tag"><i class="fa-solid fa-circle" style="font-size:8px; margin-right:4px;" aria-hidden="true"></i>${safeLang}</span>` : ''}
-                            ${topicsHtml}
-                        </div>
-
-                        <div class="card-footer">
-                            <span><i class="fa-regular fa-clock" aria-hidden="true"></i> Updated: ${updatedDate}</span>
-                            ${liveLink}
-                        </div>
-                    `;
-
-                    // Clickable card
-                    card.style.cursor = 'pointer';
-                    card.addEventListener('click', (e) => {
-                        if(!e.target.closest('a')) {
-                            window.open(targetUrl, '_blank');
-                        }
-                    });
-
-                    grid.appendChild(card);
                 });
 
+                grid.appendChild(card);
+            });
+        }
+
+        async function fetchRepos() {
+            const cacheKey = 'github-repos-cache';
+            const cacheTimeKey = 'github-repos-cache-time';
+            
+            // 1. Try to load from session storage cache
+            let hasLoadedFromCache = false;
+            try {
+                const cacheTime = sessionStorage.getItem(cacheTimeKey);
+                if (cacheTime && (Date.now() - parseInt(cacheTime, 10)) < 3600000) {
+                    const cachedData = sessionStorage.getItem(cacheKey);
+                    if (cachedData) {
+                        const parsed = JSON.parse(cachedData);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            renderRepos(parsed);
+                            hasLoadedFromCache = true;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('Session storage cache read failed:', e);
+            }
+
+            // 2. If not loaded from cache, immediately render static repos to prevent stuck loading state
+            if (!hasLoadedFromCache) {
+                renderRepos(STATIC_REPOS);
+            }
+
+            // 3. Background fetch fresh data from GitHub API with a 6-second timeout
+            const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+            const timeoutId = controller ? setTimeout(() => controller.abort(), 6000) : null;
+
+            try {
+                const fetchOptions = {
+                    headers: { 'Accept': 'application/vnd.github.v3+json' }
+                };
+                if (controller) {
+                    fetchOptions.signal = controller.signal;
+                }
+
+                const response = await fetch(`https://api.github.com/users/${GITHUB_USERNAME}/repos?sort=updated&per_page=100`, fetchOptions);
+                if (timeoutId) clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error(`GitHub API returned status ${response.status}`);
+                }
+
+                let repos = await response.json();
+                if (Array.isArray(repos)) {
+                    repos = repos.filter(repo => repo.name !== `${GITHUB_USERNAME}.github.io`);
+                    if (repos.length > 0) {
+                        renderRepos(repos);
+                        try {
+                            sessionStorage.setItem(cacheKey, JSON.stringify(repos));
+                            sessionStorage.setItem(cacheTimeKey, Date.now().toString());
+                        } catch (e) {
+                            // Storage may be quota-restricted, ignore safely
+                        }
+                    }
+                }
             } catch (error) {
-                console.error(error);
-                grid.innerHTML = '<div class="loader" style="color: #ef4444;"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Failed to load projects.</div>';
+                if (timeoutId) clearTimeout(timeoutId);
+                console.warn('GitHub API fetch failed or rate-limited; displaying cached/curated projects:', error.message);
+                // Already rendered STATIC_REPOS or cache, so the user never sees an error or stuck loader
             }
         }
 
